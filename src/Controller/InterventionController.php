@@ -57,6 +57,8 @@ class InterventionController extends AbstractController
         $intervention = new Intervention();
         $interventionReport = new InterventionReport();
 
+        dump($intervention);
+
         $form = $this->createForm(InterventionType::class, $intervention);
         $form->handleRequest($request);
 
@@ -74,15 +76,38 @@ class InterventionController extends AbstractController
             $this->em->persist($intervention);
             $this->em->flush();
 
+            
+
+            // Send data to DOlibarr
+            $this->sendDataToDolibarr($intervention);
+
             return $this->redirectToRoute('intervention_show', [
                 'id' => $intervention->getId(),
             ]);
         }
-
+        
+        /*
         return $this->render('intervention/new.html.twig', [
             'intervention' => $intervention,
             'form' => $form->createView(),
         ]);
+        */
+    }
+
+    /**
+     * Send data to Dolibarr
+     */
+    private function sendDataToDolibarr(Intervention $intervention) {
+
+        // Le client existe t-il dans Dolibarr
+        $client = $intervention->getCLient();
+        dump($client);
+
+        // Le services existe t-il dans Dolibarr
+
+
+        // Bon d'intervention
+
     }
 
     /**
