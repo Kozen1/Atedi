@@ -144,6 +144,45 @@ class InterventionController extends AbstractController
                             $this->em->persist($intervention);
                             $this->em->flush();
                             return $this->redirectToRoute('index');
+
+                            $apiUrl = 'htps://lbouquet.doli.sio-ndlp.fr/api/index.php/invoices?';
+                            $apiKey = 'DOLAPIKEY=8n8O4975Miz06XpO6HAKdfmOJQpkjSz3';
+
+                            $customer_name = "Christelle WILLIAM";
+
+                            $clientSearch = json_decode(CallAPI("GET", $apiKey, $apiUrl."thirdparties", array(
+                                "sortfield" => "t.rowid", 
+                                "sortorder" => "ASC", 
+                                "limit" => "1", 
+                                "mode" => "1",
+                                "sqlfilters" => "(t.nom:=:'".$customer_name."')"
+                            )), true);
+
+                            if (!$clientSearch) {
+                                // Création d'un nouveau client s'il n'existe pas
+                                $newClient = [
+                                    "name" 			=> "customer company name",
+                                    "email"			=> "customer company email",
+                                    "client" 		=> "1",
+                                    "code_client"	=> "-1"
+                                ];
+                                $newClientResult = CallAPI("POST", $apiKey, $apiUrl."thirdparties", json_encode($newClient));
+                                $newClientResult = json_decode($newClientResult, true);
+                                $clientDoliId = $newClientResult;
+                            } else {
+                                // Utilisation du client existant
+                                $clientDoliId = $clientSearch[0]["id"];
+                            }
+
+                            // Utilisation de l'ID du client pour créer la facture
+                            $invoiceData = [
+                                "socid" => $clientDoliId,
+                                //TODO
+                            ];
+
+                            // Envoi de la facture à Dolibarr
+                            $createInvoiceResult = CallAPI("POST", $apiKey, $apiUrl."invoices", json_encode($invoiceData));
+                            $createInvoiceResult = json_decode($createInvoiceResult, true);
                         }
                         break;
                 }
