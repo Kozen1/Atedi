@@ -155,9 +155,9 @@ class InterventionController extends AbstractController
                                     "fk_product" => "14"
                                 ]   
                               ]
-                            ];
+                            ];   
 
-                            $result = $this->callApiService->createInvoice($customerName, $invoiceData);
+                            $result = $this->callApiService->createInvoice($customerName, $invoiceData, $customerId);
                             dump($result);
                             $this->em->persist($intervention);
                             $this->em->flush();

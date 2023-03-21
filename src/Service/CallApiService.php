@@ -21,9 +21,10 @@ class CallApiService
         $this->client = $client;
     }
 
-    public function createInvoice(string $customer_name, array $invoiceData): array
+    public function createInvoice(string $customer_name, array $invoiceData, int $clientId): array
     {
         $clientSearch = $this->getClientByName($customer_name);
+        
         if (!$clientSearch) {
             // Création d'un nouveau client s'il n'existe pas
             $newClient = [
@@ -45,8 +46,21 @@ class CallApiService
         }
 
         // Ajout de l'ID du client à la facture
-        $invoiceData["socid"] = $clientDoliId;
-
+        $invoiceData = [
+            "socid" => $clientId,
+            "type" => "0",
+            "note_private" => "Facture générée par Atedi",
+            "line" => [
+              [
+                  "desc" => "Vente d'un disque dur pour votre ordinateur sous Windows",
+                  "subprice" => "50.0",
+                  "qty" => "1",
+                  "tva_tx" => "20.0",
+                  "fk_product" => "14"
+              ]   
+            ]
+          ];
+        dump($invoiceData);
         // Envoi de la facture à Dolibarr
         dump("Avant création de la facture");
         // $createInvoiceResult = $this->callAPI("POST", $this->apiKey, $this->apiUrl."invoices", json_encode($invoiceData));
@@ -98,11 +112,11 @@ class CallApiService
 
         // Si le code de statut HTTP n'est pas 200, lance une exception avec un message d'erreur
         if ($response->getStatusCode() !== 200) {
-            throw new Exception("Erreur HTTP : " . $response->getStatusCode());
+            $response = 0;
         }
 
         // Renvoie la réponse de l'API en tant que chaîne de caractères
-        return $response->getContent();
+        return $response;
     }
 }
 
