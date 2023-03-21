@@ -19,6 +19,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use App\Repository\BillingLineRepository;
 use App\Entity\SoftwareInterventionReport;
 use App\Repository\InterventionRepository;
+use App\Service\CallApiService;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -31,10 +32,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 class InterventionController extends AbstractController
 {
     private $AtediHelper;
+    private $callApiService;
 
-    public function __construct(AtediHelper $AtediHelper)
+    public function __construct(AtediHelper $AtediHelper, CallApiService $callApiService)
     {
         $this->atediHelper = $AtediHelper;
+        $this->callApiService = $callApiService;
     }
 
     /**
@@ -57,8 +60,6 @@ class InterventionController extends AbstractController
         $intervention = new Intervention();
         $interventionReport = new InterventionReport();
 
-        dump($intervention);
-
         $form = $this->createForm(InterventionType::class, $intervention);
         $form->handleRequest($request);
 
@@ -76,8 +77,6 @@ class InterventionController extends AbstractController
             $this->em->persist($intervention);
             $this->em->flush();
 
-            
-
             // Send data to DOlibarr
             $this->sendDataToDolibarr($intervention);
 
@@ -86,12 +85,10 @@ class InterventionController extends AbstractController
             ]);
         }
         
-        /*
         return $this->render('intervention/new.html.twig', [
             'intervention' => $intervention,
             'form' => $form->createView(),
         ]);
-        */
     }
 
     /**
@@ -141,6 +138,27 @@ class InterventionController extends AbstractController
                     case "Terminée":
                         if ( $intervention->getInterventionReport()->getStep() == 8 && $intervention->getReturnDate() ) {
                             $intervention->setStatus($newStatus);
+                            $customer = $intervention->getClient();
+                            $customerName = $customer->getFirstName() . " " . $customer->getLastname();
+                            $customerId = $customer->getId();
+                            // $clientSearch = $this->callApiService->getClientByName($customerName);
+                            $invoiceData = [
+                              "socid" => $customerId,
+                              "type" => "0",
+                              "note_private" => "Facture générée par Atedi",
+                              "line" => [
+                                [
+                                    "desc" => "Vente d'un disque dur pour votre ordinateur sous Windows",
+                                    "subprice" => "50.0",
+                                    "qty" => "1",
+                                    "tva_tx" => "20.0",
+                                    "fk_product" => "14"
+                                ]   
+                              ]
+                            ];
+
+                            $result = $this->callApiService->createInvoice($customerName, $invoiceData);
+                            dump($result);
                             $this->em->persist($intervention);
                             $this->em->flush();
                             return $this->redirectToRoute('index');
